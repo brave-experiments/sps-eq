@@ -5,3 +5,4 @@
 
 pub mod sign;
 pub mod verify;
+mod errors;

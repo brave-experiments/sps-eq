@@ -5,6 +5,7 @@ use ark_ec::{
 };
 
 use crate::sign::{SigningKey, SpsEqSignature};
+use crate::errors::*;
 
 /// SPS-EQ public key
 pub struct PublicKey<E: PairingEngine> {
@@ -16,12 +17,35 @@ pub struct PublicKey<E: PairingEngine> {
 
 impl<E: PairingEngine> PublicKey<E> {
     /// Verify a signature with the public key
-    fn verify(&self, messages: &Vec<E::G1Projective>, signature: SpsEqSignature<E>) -> Result<(), ()>{
+    pub fn verify(&self, messages: &Vec<E::G1Projective>, signature: &SpsEqSignature<E>) -> Result<(), SpsEqSignatureError>{
+        if self.signature_capacity != messages.len() {
+            return Err(SpsEqSignatureError::UnmatchedCapacity)
+        }
+
+        let mut check_1 = E::pairing(messages[0], self.public_keys[0]);
+        for i in 1..(self.signature_capacity) {
+            check_1 *= &E::pairing(messages[i], self.public_keys[i]);
+        }
+
+        // todo: change the error handling
+        let expected_check_1 = E::pairing(signature.Z, signature.Yp);
+
+        if check_1 != expected_check_1 {
+            return Err(SpsEqSignatureError::InvalidSignature)
+        }
+
+        let check_2 = E::pairing(signature.Y, E::G2Projective::prime_subgroup_generator());
+        let expected_check_2 = E::pairing(E::G1Projective::prime_subgroup_generator(), signature.Yp);
+        if check_2 != expected_check_2 {
+            return Err(SpsEqSignatureError::InvalidSignature)
+        }
+
         Ok(())
     }
 }
 
 /// Generate public keys from a secret key
+// todo: maybe we want to do from a reference?
 impl<E: PairingEngine> From<SigningKey<E>> for PublicKey<E> {
     fn from(signing_key: SigningKey<E>) -> PublicKey<E> {
         let signature_capacity = signing_key.signature_capacity;
@@ -34,20 +58,27 @@ impl<E: PairingEngine> From<SigningKey<E>> for PublicKey<E> {
     }
 }
 
-
-
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    use ark_ff::{One};
-    use ark_bls12_381::{Fr, Bls12_381, G2Projective as G2};
+    use ark_ff::{UniformRand};
+    use ark_bls12_381::{Bls12_381, G1Projective as G1};
     use rand::thread_rng;
 
     #[test]
-    fn test_from_sk() {
+    fn test_signature() {
         let sk = SigningKey::<Bls12_381>::new(2, &mut thread_rng());
-        let pk = PublicKey::from(sk);
+        let pk = PublicKey::from(sk.clone());
+
+        let message = vec![G1::rand(&mut thread_rng()); 2];
+        let signature = sk.sign(&message, &mut thread_rng());
+
+        // signature should be valid
+        assert!(pk.verify(&message, &signature).is_ok());
+
+        let different_message = vec![G1::rand(&mut thread_rng()); 2];
+        // signature over a random message should fail
+        assert!(pk.verify(&different_message, &signature).is_err())
     }
 }

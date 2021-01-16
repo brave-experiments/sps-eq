@@ -2,23 +2,23 @@
 
 use ark_ec::{PairingEngine, ProjectiveCurve};
 
-use ark_ff::{UniformRand, BigInteger, Zero, PrimeField, Field};
+use ark_ff::{UniformRand, Zero, Field};
 
 use rand::{Rng, CryptoRng};
-use ark_ec::msm::VariableBaseMSM;
 
 /// SPS-EQ signature
 pub struct SpsEqSignature<E: PairingEngine> {
     /// Z point
-    Z: E::G1Projective,
+    pub Z: E::G1Projective,
     /// Y point
-    Y: E::G1Projective,
+    pub Y: E::G1Projective,
     /// Yp point
-    Yp: E::G2Projective,
+    pub Yp: E::G2Projective,
 }
 
 
 /// SPS-EQ signing key
+#[derive(Clone)]
 pub struct SigningKey<E: PairingEngine> {
     /// Capacity supported by the signing key
     pub signature_capacity: usize,
@@ -37,11 +37,11 @@ impl<E: PairingEngine> SigningKey<E> {
     }
 
     /// Generate a [`SigningKey`] from a given input.
-    pub fn new_input(sks: Vec<E::Fr>) -> Result<SigningKey<E>, ()>
+    pub fn new_input(sks: Vec<E::Fr>) -> SigningKey<E>
     {
         let signature_capacity = sks.len();
 
-        Ok(SigningKey{signature_capacity, secret_keys: sks})
+        SigningKey{signature_capacity, secret_keys: sks}
     }
 
     /// Sign a message, represented by a tuple of elements of G1Projective
@@ -50,8 +50,8 @@ impl<E: PairingEngine> SigningKey<E> {
         R: Rng + CryptoRng
     {
         // todo: We probably want to do something when this goes out of scope
-        let mut randomness = E::Fr::zero();
-        while !randomness.is_zero() {
+        let mut randomness = E::Fr::rand(rng);
+        while randomness.is_zero() {
             randomness = E::Fr::rand(rng);
         }
 
@@ -87,14 +87,14 @@ impl<E: PairingEngine> IntoIterator for SigningKey<E>
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ark_ff::{One, Zero, BigInteger, PrimeField, Field};
-    use ark_bls12_381::{Fr, Bls12_381, G2Projective as G2, G1Projective as G1, G1Affine, G2Affine, G1Projective};
-    use ark_ec::{ProjectiveCurve, AffineCurve, msm::VariableBaseMSM};
+    use ark_ff::{One, Zero, Field};
+    use ark_bls12_381::{Fr, Bls12_381, G2Projective as G2, G1Projective as G1, G1Affine, G1Projective};
+    use ark_ec::{ProjectiveCurve, msm::VariableBaseMSM};
     use rand::thread_rng;
 
     #[test]
     fn test_iterator() {
-        let sk = SigningKey::<Bls12_381>::new_input(vec![Fr::one(); 3]).unwrap();
+        let sk = SigningKey::<Bls12_381>::new_input(vec![Fr::one(); 3]);
         for item in sk.into_iter() {
             assert_eq!(item, Fr::one())
         }
@@ -111,16 +111,16 @@ mod tests {
     #[test]
     fn g1_generator() {
         let Z = G1Affine::zero();
-        let lalal = G1Projective::zero();
-        let Y = G1::prime_subgroup_generator();
-        let Yp = G2::prime_subgroup_generator();
+        let _lalal = G1Projective::zero();
+        let _Y = G1::prime_subgroup_generator();
+        let _Yp = G2::prime_subgroup_generator();
 
         // todo: multi scalar mult is not of utter importance now. We only expect two mults. Change
         // eventually
         let a = VariableBaseMSM::multi_scalar_mul(&[Z], &[Fr::one().into()]);
 
         let b = Fr::rand(&mut thread_rng());
-        let c = b.inverse();
+        let _c = b.inverse();
 
 
         assert_eq!(a, Z);
