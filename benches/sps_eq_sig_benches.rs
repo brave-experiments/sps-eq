@@ -20,13 +20,13 @@ mod proof_of_credential_benches {
         let message = vec![G1::rand(&mut thread_rng()); 2];
 
         c.bench_function("Signature", |b| {
-            b.iter(|| sk.clone().sign(&message, &mut thread_rng()));
+            b.iter(|| sk.sign(&message, &mut thread_rng()));
         });
     }
 
     fn verification(c: &mut Criterion) {
         let sk = SigningKey::<Bls12_381>::new(2, &mut thread_rng());
-        let pk = PublicKey::from(sk.clone());
+        let pk = PublicKey::from(&sk);
 
         let message = vec![G1::rand(&mut thread_rng()); 2];
         let signature = sk.sign(&message, &mut thread_rng());
