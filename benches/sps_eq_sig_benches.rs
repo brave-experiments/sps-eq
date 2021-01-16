@@ -45,6 +45,4 @@ mod proof_of_credential_benches {
     }
 }
 
-criterion_main!(
-    proof_of_credential_benches::signature_benches,
-);
+criterion_main!(proof_of_credential_benches::signature_benches,);
