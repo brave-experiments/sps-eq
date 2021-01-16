@@ -23,9 +23,9 @@ impl<E: PairingEngine> SpsEqSignature<E> {
     /// message)
     pub fn change_repr<R>(
         &mut self,
-        message: (E::G1Projective, E::G1Projective),
+        message: &Vec<E::G1Projective>,
         rng: &mut R,
-    ) -> (E::G1Projective, E::G1Projective)
+    ) -> Vec<E::G1Projective>
     where
         R: Rng + CryptoRng,
     {
@@ -46,9 +46,9 @@ impl<E: PairingEngine> SpsEqSignature<E> {
     /// and the signature (ie. signature may not correspond to the message)
     pub fn generate_new_repr<R>(
         self,
-        message: (E::G1Projective, E::G1Projective),
+        message: &Vec<E::G1Projective>,
         rng: &mut R,
-    ) -> (SpsEqSignature<E>, (E::G1Projective, E::G1Projective))
+    ) -> (SpsEqSignature<E>, Vec<E::G1Projective>)
     where
         R: Rng + CryptoRng,
     {
@@ -61,16 +61,14 @@ impl<E: PairingEngine> SpsEqSignature<E> {
         (rnd_signature, rnd_message)
     }
 
-    fn rnd_message(
-        message: (E::G1Projective, E::G1Projective),
-        rnd_f: E::Fr,
-    ) -> (E::G1Projective, E::G1Projective) {
-        let mut new_m0 = message.0;
-        let mut new_m1 = message.1;
-        new_m0 *= rnd_f;
-        new_m1 *= rnd_f;
+    fn rnd_message(message: &Vec<E::G1Projective>, rnd_f: E::Fr) -> Vec<E::G1Projective> {
+        let mut rnd_msg: Vec<E::G1Projective> = vec![];
+        for (i, g) in message.into_iter().enumerate() {
+            *g *= rnd_f;
+            rnd_msg[i] = *g;
+        }
 
-        (new_m0, new_m1)
+        rnd_msg
     }
 
     fn rnd_signature(signature: &SpsEqSignature<E>, rnd_u: E::Fr) -> SpsEqSignature<E> {
