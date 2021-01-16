@@ -46,13 +46,13 @@ impl<E: PairingEngine> PublicKey<E> {
 
 /// Generate public keys from a secret key
 // todo: maybe we want to do from a reference?
-impl<E: PairingEngine> From<SigningKey<E>> for PublicKey<E> {
-    fn from(signing_key: SigningKey<E>) -> PublicKey<E> {
+impl<'a, E: PairingEngine> From< &SigningKey<E>> for PublicKey<E> {
+    fn from(signing_key: &SigningKey<E>) -> PublicKey<E> {
         let signature_capacity = signing_key.signature_capacity;
 
         let mut public_keys = vec![E::G2Projective::prime_subgroup_generator(); signature_capacity.clone()];
-        for (pkey, skey) in public_keys.iter_mut().zip(signing_key.into_iter()) {
-            *pkey *= skey;
+        for (pkey, skey) in public_keys.iter_mut().zip(signing_key.secret_keys.iter()) {
+            *pkey *= *skey;
         }
         PublicKey {signature_capacity, public_keys}
     }
@@ -69,7 +69,7 @@ mod tests {
     #[test]
     fn test_signature() {
         let sk = SigningKey::<Bls12_381>::new(2, &mut thread_rng());
-        let pk = PublicKey::from(sk.clone());
+        let pk = PublicKey::from(&sk);
 
         let message = vec![G1::rand(&mut thread_rng()); 2];
         let signature = sk.sign(&message, &mut thread_rng());

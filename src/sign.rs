@@ -23,7 +23,7 @@ pub struct SigningKey<E: PairingEngine> {
     /// Capacity supported by the signing key
     pub signature_capacity: usize,
     /// Secret keys
-    secret_keys: Vec<E::Fr>,
+    pub (crate) secret_keys: Vec<E::Fr>,
 }
 
 impl<E: PairingEngine> SigningKey<E> {
@@ -45,7 +45,7 @@ impl<E: PairingEngine> SigningKey<E> {
     }
 
     /// Sign a message, represented by a tuple of elements of G1Projective
-    pub fn sign<R>(self, messages: &Vec<E::G1Projective>, rng: &mut R) -> SpsEqSignature<E>
+    pub fn sign<R>(&self, messages: &Vec<E::G1Projective>, rng: &mut R) -> SpsEqSignature<E>
     where
         R: Rng + CryptoRng
     {
@@ -62,8 +62,8 @@ impl<E: PairingEngine> SigningKey<E> {
         // todo: in here we'll eventually use `VariableBaseMSM::multi_scalar_mul`. Not necessary
         // yet, as we expect to have only two commitments.
         let mut messages = messages.clone();
-        for (value, key) in messages.iter_mut().zip(self.into_iter()) {
-            *value *= key;
+        for (value, key) in messages.iter_mut().zip(self.secret_keys.iter()) {
+            *value *= *key;
             Z += value;
         }
 
@@ -72,15 +72,6 @@ impl<E: PairingEngine> SigningKey<E> {
         Yp *= randomness.inverse().expect("It will never be zero");
 
         SpsEqSignature{Z, Y, Yp}
-    }
-}
-
-impl<E: PairingEngine> IntoIterator for SigningKey<E>
-{
-    type Item = E::Fr;
-    type IntoIter = std::vec::IntoIter<Self::Item>;
-    fn into_iter(self) -> Self::IntoIter {
-        self.secret_keys.into_iter()
     }
 }
 
