@@ -16,3 +16,8 @@ rand = "0.7"
 
 [dev-dependencies]
 ark-bls12-381 = { git = "https://github.com/arkworks-rs/curves", rev = "39c58df", default-features = false, features = ["curve"] }
+criterion = "0.3"
+
+[[bench]]
+name = "sps_eq_sig_benches"
+harness = false
