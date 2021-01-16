@@ -17,7 +17,7 @@ pub struct PublicKey<E: PairingEngine> {
 impl<E: PairingEngine> PublicKey<E> {
     /// Verify a signature with the public key
     fn verify(&self, messages: &Vec<E::G1Projective>, signature: SpsEqSignature<E>) -> Result<(), ()>{
-
+        Ok(())
     }
 }
 
@@ -30,7 +30,6 @@ impl<E: PairingEngine> From<SigningKey<E>> for PublicKey<E> {
         for (pkey, skey) in public_keys.iter_mut().zip(signing_key.into_iter()) {
             *pkey *= skey;
         }
-
         PublicKey {signature_capacity, public_keys}
     }
 }

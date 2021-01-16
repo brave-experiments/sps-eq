@@ -37,11 +37,9 @@ impl<E: PairingEngine> SigningKey<E> {
     }
 
     /// Generate a [`SigningKey`] from a given input.
-    pub fn new_input(signature_capacity: usize, sks: Vec<E::Fr>) -> Result<SigningKey<E>, ()>
+    pub fn new_input(sks: Vec<E::Fr>) -> Result<SigningKey<E>, ()>
     {
-        if signature_capacity != sks.len() {
-            return Err(());
-        }
+        let signature_capacity = sks.len();
 
         Ok(SigningKey{signature_capacity, secret_keys: sks})
     }
@@ -96,7 +94,7 @@ mod tests {
 
     #[test]
     fn test_iterator() {
-        let sk = SigningKey::<Bls12_381>::new_input(3, vec![Fr::one(); 3]).unwrap();
+        let sk = SigningKey::<Bls12_381>::new_input(vec![Fr::one(); 3]).unwrap();
         for item in sk.into_iter() {
             assert_eq!(item, Fr::one())
         }
