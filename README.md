@@ -34,3 +34,4 @@ let changed_representation: SpsEqSignature = signature_eq.chg_rep();
 // Or it can change it by providing randomness
 let changed_representation: SpsEqSignature = signature_eq.chg_rep_with_rng(&mut rng_of_choice);
 ```
+

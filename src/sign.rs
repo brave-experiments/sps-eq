@@ -32,7 +32,7 @@ impl<E: PairingEngine> SpsEqSignature<E> {
         let rnd_f = E::Fr::rand(rng);
         let rnd_u = E::Fr::rand(rng);
 
-        let rnd_signature = SpsEqSignature::<E>::rnd_signature(&self, rnd_u);
+        let rnd_signature = SpsEqSignature::<E>::rnd_signature(&self, rnd_u, rnd_f);
         self.Z = rnd_signature.Z;
         self.Y = rnd_signature.Y;
         self.Yp = rnd_signature.Yp;
@@ -55,23 +55,30 @@ impl<E: PairingEngine> SpsEqSignature<E> {
         let rnd_f = E::Fr::rand(rng);
         let rnd_u = E::Fr::rand(rng);
 
-        let rnd_signature = SpsEqSignature::<E>::rnd_signature(&self, rnd_u);
+        let rnd_signature = SpsEqSignature::<E>::rnd_signature(&self, rnd_u, rnd_f);
         let rnd_message = SpsEqSignature::<E>::rnd_message(message, rnd_f);
 
         (rnd_signature, rnd_message)
     }
 
     fn rnd_message(message: &Vec<E::G1Projective>, rnd_f: E::Fr) -> Vec<E::G1Projective> {
-        let mut rnd_msg: Vec<E::G1Projective> = vec![];
-        for (i, g) in message.into_iter().enumerate() {
-            *g *= rnd_f;
-            rnd_msg[i] = *g;
-        }
+        let rnd_msg = message
+            .clone()
+            .into_iter()
+            .map(|mut g| {
+                g *= rnd_f;
+                g
+            })
+            .collect();
 
         rnd_msg
     }
 
-    fn rnd_signature(signature: &SpsEqSignature<E>, rnd_u: E::Fr) -> SpsEqSignature<E> {
+    fn rnd_signature(
+        signature: &SpsEqSignature<E>,
+        rnd_u: E::Fr,
+        rnd_f: E::Fr,
+    ) -> SpsEqSignature<E> {
         let rnd_u_inverse = rnd_u.inverse().expect("It will never be zero");
 
         let mut rnd_signature = SpsEqSignature {
@@ -81,6 +88,8 @@ impl<E: PairingEngine> SpsEqSignature<E> {
         };
 
         rnd_signature.Z *= rnd_u;
+        rnd_signature.Z *= rnd_f;
+
         rnd_signature.Y *= rnd_u_inverse;
         rnd_signature.Yp *= rnd_u_inverse;
 
