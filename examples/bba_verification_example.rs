@@ -56,7 +56,7 @@ fn main() {
     // For sake of simplicity we abstract the zero knowledge proof in this example. The
     // user, to prove ownership of the token will disclose all its openings. In reality
     // the user hides its randomness and the actual state of the counters. It directly
-    // computes the zero knowledge proof, and proves correctness
+    // computes the zero knowledge proof, and simply proves correctness of the computation
     let mut reward = Fr::zero();
     for (state, policy) in token_opening.iter().zip(policy_vector.iter()) {
         reward += *state * *policy;
@@ -66,7 +66,7 @@ fn main() {
 
     // The verification procedure will verify the proof, rather than computing the actual
     // inner product. Similarly, it will verify the proof of opening knowledge, rather than
-    // compute it directly.
+    // receive the opening itself.
     let mut verif_token = G1::zero();
     for (opening, pk) in proof.0.iter().zip(pk_issuer.iter()) {
         let mut temp = *pk;
