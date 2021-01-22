@@ -4,9 +4,9 @@
 // BBAs, please refer to https://github.com/brave-experiments/bb-accumulators.
 // Still work in progress
 
-use ark_ff::{Zero, UniformRand,};
-use ark_bls12_381::{Fr, Bls12_381, G1Projective as G1};
-use ark_ec::{ProjectiveCurve};
+use ark_bls12_381::{Bls12_381, Fr, G1Projective as G1};
+use ark_ec::ProjectiveCurve;
+use ark_ff::{UniformRand, Zero};
 use rand::thread_rng;
 
 use sps_eq::sign::*;
@@ -25,7 +25,6 @@ fn main() {
     // Key pair of issuer for the SPS-EQ signature over the token
     let sk_sps = SigningKey::<Bls12_381>::new(2, &mut thread_rng());
     let pk_sps = PublicKey::from(&sk_sps);
-
 
     // User
     let token_identifier = Fr::rand(&mut thread_rng());

@@ -1,10 +1,10 @@
 //! Module describing the signing procedures and structs
 
 use ark_ec::{PairingEngine, ProjectiveCurve};
-use ark_ff::{UniformRand, Zero, Field};
+use ark_ff::{Field, UniformRand, Zero};
 
+use rand::{CryptoRng, Rng};
 use zeroize::Zeroize;
-use rand::{Rng, CryptoRng};
 
 /// SPS-EQ signature
 pub struct SpsEqSignature<E: PairingEngine> {
@@ -15,7 +15,6 @@ pub struct SpsEqSignature<E: PairingEngine> {
     /// Yp point
     pub Yp: E::G2Projective,
 }
-
 
 /// SPS-EQ signing key
 #[derive(Clone, Debug)]
@@ -30,24 +29,29 @@ impl<E: PairingEngine> SigningKey<E> {
     /// Generate a cryptographically random [`SigningKey`].
     pub fn new<R>(signature_capacity: usize, rng: &mut R) -> SigningKey<E>
     where
-        R: Rng + CryptoRng
+        R: Rng + CryptoRng,
     {
         let secret_keys = vec![E::Fr::rand(rng); signature_capacity];
-        SigningKey{signature_capacity, secret_keys}
+        SigningKey {
+            signature_capacity,
+            secret_keys,
+        }
     }
 
     /// Generate a [`SigningKey`] from a given input.
-    pub fn new_input(sks: Vec<E::Fr>) -> SigningKey<E>
-    {
+    pub fn new_input(sks: Vec<E::Fr>) -> SigningKey<E> {
         let signature_capacity = sks.len();
 
-        SigningKey{signature_capacity, secret_keys: sks}
+        SigningKey {
+            signature_capacity,
+            secret_keys: sks,
+        }
     }
 
     /// Sign a message, represented by a tuple of elements of G1Projective
     pub fn sign<R>(&self, messages: &Vec<E::G1Projective>, rng: &mut R) -> SpsEqSignature<E>
     where
-        R: Rng + CryptoRng
+        R: Rng + CryptoRng,
     {
         // todo: We probably want to do something when this goes out of scope
         let mut randomness = E::Fr::rand(rng);
@@ -71,7 +75,7 @@ impl<E: PairingEngine> SigningKey<E> {
         Y *= randomness.inverse().expect("It will never be zero");
         Yp *= randomness.inverse().expect("It will never be zero");
 
-        SpsEqSignature{Z, Y, Yp}
+        SpsEqSignature { Z, Y, Yp }
     }
 }
 
@@ -103,12 +107,13 @@ impl<'a, E: PairingEngine> IntoIterator for &'a SigningKey<E> {
     }
 }
 
+/// Iterator for `SigningKey`, which implements `Iterator` itself
 pub struct KeyIntoIterator<'a, E: PairingEngine> {
     signing_key: &'a SigningKey<E>,
     index: usize,
 }
 
-impl<'a, E:PairingEngine> Iterator for KeyIntoIterator<'a, E> {
+impl<'a, E: PairingEngine> Iterator for KeyIntoIterator<'a, E> {
     type Item = E::Fr;
 
     fn next(&mut self) -> Option<E::Fr> {
@@ -117,7 +122,7 @@ impl<'a, E:PairingEngine> Iterator for KeyIntoIterator<'a, E> {
                 self.index += 1;
                 Some(*x)
             }
-            None => None
+            None => None,
         }
     }
 }
@@ -125,9 +130,11 @@ impl<'a, E:PairingEngine> Iterator for KeyIntoIterator<'a, E> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ark_ff::{One, Zero, Field};
-    use ark_bls12_381::{Fr, Bls12_381, G2Projective as G2, G1Projective as G1, G1Affine, G1Projective};
-    use ark_ec::{ProjectiveCurve, msm::VariableBaseMSM};
+    use ark_bls12_381::{
+        Bls12_381, Fr, G1Affine, G1Projective as G1, G1Projective, G2Projective as G2,
+    };
+    use ark_ec::{msm::VariableBaseMSM, ProjectiveCurve};
+    use ark_ff::{Field, One, Zero};
     use rand::thread_rng;
 
     #[test]
@@ -168,7 +175,6 @@ mod tests {
 
         let b = Fr::rand(&mut thread_rng());
         let _c = b.inverse();
-
 
         assert_eq!(a, Z);
     }
