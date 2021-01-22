@@ -49,7 +49,7 @@ impl<E: PairingEngine> SigningKey<E> {
     }
 
     /// Sign a message, represented by a tuple of elements of G1Projective
-    pub fn sign<R>(&self, messages: &Vec<E::G1Projective>, rng: &mut R) -> SpsEqSignature<E>
+    pub fn sign<R>(&self, messages: &[E::G1Projective], rng: &mut R) -> SpsEqSignature<E>
     where
         R: Rng + CryptoRng,
     {
@@ -65,7 +65,7 @@ impl<E: PairingEngine> SigningKey<E> {
 
         // todo: in here we'll eventually use `VariableBaseMSM::multi_scalar_mul`. Not necessary
         // yet, as we expect to have only two commitments.
-        let mut messages = messages.clone();
+        let mut messages = messages.to_owned();
         for (value, key) in messages.iter_mut().zip(self) {
             *value *= key;
             Z += value;

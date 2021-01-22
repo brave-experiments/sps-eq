@@ -16,7 +16,7 @@ impl<E: PairingEngine> PublicKey<E> {
     /// Verify a signature with the public key
     pub fn verify(
         &self,
-        messages: &Vec<E::G1Projective>,
+        messages: &[E::G1Projective],
         signature: &SpsEqSignature<E>,
     ) -> Result<(), SpsEqSignatureError> {
         if self.signature_capacity != messages.len() {
@@ -24,8 +24,8 @@ impl<E: PairingEngine> PublicKey<E> {
         }
 
         let mut check_1 = E::pairing(messages[0], self.public_keys[0]);
-        for (message, key) in messages.iter().zip(self.public_keys) {
-            check_1 *= &E::pairing(messages[i], self.public_keys[i]);
+        for (&message, key) in messages.iter().zip(self.public_keys.clone()).skip(1) {
+            check_1 *= &E::pairing(message, key);
         }
 
         // todo: change the error handling
@@ -60,6 +60,44 @@ impl<'a, E: PairingEngine> From<&SigningKey<E>> for PublicKey<E> {
         PublicKey {
             signature_capacity,
             public_keys,
+        }
+    }
+}
+
+impl<E: PairingEngine> PartialEq for PublicKey<E> {
+    fn eq(&self, other: &Self) -> bool {
+        self.public_keys == other.public_keys
+    }
+}
+
+impl<'a, E: PairingEngine> IntoIterator for &'a PublicKey<E> {
+    type Item = E::G2Projective;
+    type IntoIter = PubKeyIntoIterator<'a, E>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        PubKeyIntoIterator {
+            public_key: self,
+            index: 0,
+        }
+    }
+}
+
+/// Iterator for `PublicKey`, which implements `Iterator` itself
+pub struct PubKeyIntoIterator<'a, E: PairingEngine> {
+    public_key: &'a PublicKey<E>,
+    index: usize,
+}
+
+impl<'a, E: PairingEngine> Iterator for PubKeyIntoIterator<'a, E> {
+    type Item = E::G2Projective;
+
+    fn next(&mut self) -> Option<E::G2Projective> {
+        match self.public_key.public_keys.get(self.index) {
+            Some(x) => {
+                self.index += 1;
+                Some(*x)
+            }
+            None => None,
         }
     }
 }
