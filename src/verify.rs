@@ -28,7 +28,6 @@ impl<E: PairingEngine> PublicKey<E> {
             check_1 *= &E::pairing(message, key);
         }
 
-        // todo: change the error handling
         let expected_check_1 = E::pairing(signature.Z, signature.Yp);
 
         if check_1 != expected_check_1 {
@@ -47,7 +46,6 @@ impl<E: PairingEngine> PublicKey<E> {
 }
 
 /// Generate public keys from a secret key
-// todo: maybe we want to do from a reference?
 impl<'a, E: PairingEngine> From<&SigningKey<E>> for PublicKey<E> {
     fn from(signing_key: &SigningKey<E>) -> PublicKey<E> {
         let signature_capacity = signing_key.signature_capacity;

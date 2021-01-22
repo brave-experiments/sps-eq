@@ -16,6 +16,85 @@ pub struct SpsEqSignature<E: PairingEngine> {
     pub Yp: E::G2Projective,
 }
 
+impl<E: PairingEngine> SpsEqSignature<E> {
+    /// Mutably changes the representation of the signature and a message. The
+    /// function does not make assumptions with regards to the relation between
+    /// the message and the signature (ie. signature may not correspond to the
+    /// message)
+    pub fn change_repr<R>(
+        &mut self,
+        message: &[E::G1Projective],
+        rng: &mut R,
+    ) -> Vec<E::G1Projective>
+    where
+        R: Rng + CryptoRng,
+    {
+        let rnd_f = E::Fr::rand(rng);
+        let rnd_u = E::Fr::rand(rng);
+
+        let rnd_signature = SpsEqSignature::<E>::rnd_signature(&self, rnd_u, rnd_f);
+        self.Z = rnd_signature.Z;
+        self.Y = rnd_signature.Y;
+        self.Yp = rnd_signature.Yp;
+
+        SpsEqSignature::<E>::rnd_message(message, rnd_f)
+    }
+
+    /// Generates a new representation of the signature and message, and returns
+    /// the new representation of the signature and the message; The function
+    /// does not make assumptions with regards to relation between the message
+    /// and the signature (ie. signature may not correspond to the message)
+    pub fn generate_new_repr<R>(
+        self,
+        message: &[E::G1Projective],
+        rng: &mut R,
+    ) -> (SpsEqSignature<E>, Vec<E::G1Projective>)
+    where
+        R: Rng + CryptoRng,
+    {
+        let rnd_f = E::Fr::rand(rng);
+        let rnd_u = E::Fr::rand(rng);
+
+        let rnd_signature = SpsEqSignature::<E>::rnd_signature(&self, rnd_u, rnd_f);
+        let rnd_message = SpsEqSignature::<E>::rnd_message(message, rnd_f);
+
+        (rnd_signature, rnd_message)
+    }
+
+    fn rnd_message(message: &[E::G1Projective], rnd_f: E::Fr) -> Vec<E::G1Projective> {
+        message
+            .to_owned()
+            .into_iter()
+            .map(|mut g| {
+                g *= rnd_f;
+                g
+            })
+            .collect()
+    }
+
+    fn rnd_signature(
+        signature: &SpsEqSignature<E>,
+        rnd_u: E::Fr,
+        rnd_f: E::Fr,
+    ) -> SpsEqSignature<E> {
+        let rnd_u_inverse = rnd_u.inverse().expect("It will never be zero");
+
+        let mut rnd_signature = SpsEqSignature {
+            Z: signature.Z,
+            Y: signature.Y,
+            Yp: signature.Yp,
+        };
+
+        rnd_signature.Z *= rnd_u;
+        rnd_signature.Z *= rnd_f;
+
+        rnd_signature.Y *= rnd_u_inverse;
+        rnd_signature.Yp *= rnd_u_inverse;
+
+        rnd_signature
+    }
+}
+
 /// SPS-EQ signing key
 #[derive(Clone, Debug)]
 pub struct SigningKey<E: PairingEngine> {
@@ -39,13 +118,13 @@ impl<E: PairingEngine> SigningKey<E> {
     }
 
     /// Generate a [`SigningKey`] from a given input.
-    pub fn new_input(sks: Vec<E::Fr>) -> SigningKey<E> {
+    pub fn from(sks: Vec<E::Fr>) -> Result<SigningKey<E>, ()> {
         let signature_capacity = sks.len();
 
-        SigningKey {
+        Ok(SigningKey {
             signature_capacity,
             secret_keys: sks,
-        }
+        })
     }
 
     /// Sign a message, represented by a tuple of elements of G1Projective
@@ -138,8 +217,28 @@ mod tests {
     use rand::thread_rng;
 
     #[test]
+    fn test_new_keys() {
+        let capacity = 2;
+        let rnd = &mut thread_rng();
+
+        let sk = SigningKey::<Bls12_381>::new(capacity, rnd);
+
+        assert_eq!(sk.signature_capacity, capacity);
+        assert_eq!(sk.signature_capacity, sk.secret_keys.len());
+
+        let rnds = [&mut thread_rng(), &mut thread_rng(), &mut thread_rng()];
+        let secret_keys = vec![Fr::rand(rnds[0]), Fr::rand(rnds[1]), Fr::rand(rnds[2])];
+        let capacity = secret_keys.len();
+
+        let sk = SigningKey::<Bls12_381>::from(secret_keys).unwrap();
+
+        assert_eq!(sk.signature_capacity, capacity);
+        assert_eq!(sk.secret_keys.len(), capacity);
+    }
+
+    #[test]
     fn test_iterator() {
-        let sk = SigningKey::<Bls12_381>::new_input(vec![Fr::one(); 3]);
+        let sk = SigningKey::<Bls12_381>::from(vec![Fr::one(); 3]).unwrap();
         for item in &sk {
             assert_eq!(item, Fr::one())
         }
@@ -150,7 +249,7 @@ mod tests {
         let sk = SigningKey::<Bls12_381>::new(3, &mut thread_rng());
         let values = sk.secret_keys.clone();
 
-        let sk_from_value = SigningKey::<Bls12_381>::new_input(values);
+        let sk_from_value = SigningKey::<Bls12_381>::from(values).unwrap();
         assert_eq!(sk, sk_from_value)
     }
 
