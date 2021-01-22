@@ -11,6 +11,7 @@ edition = "2018"
 ark-ff = { git = "https://github.com/arkworks-rs/algebra", default-features = false }
 ark-ec = { git = "https://github.com/arkworks-rs/algebra", default-features = false }
 ark-poly = { git = "https://github.com/arkworks-rs/algebra", default-features = false }
+zeroize = { version = "1", default-features = false, features = ["zeroize_derive"] }
 
 rand = "0.7"
 

@@ -1,13 +1,5 @@
-// todo: to decide if we give a feature 'std' here
-#[cfg(feature = "std")]
 use std::fmt;
-#[cfg(feature = "std")]
 use std::fmt::Display;
-
-#[cfg(not(feature = "std"))]
-use core::fmt;
-#[cfg(not(feature = "std"))]
-use core::fmt::Display;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub enum SpsEqSignatureError {
