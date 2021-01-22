@@ -52,8 +52,7 @@ impl<'a, E: PairingEngine> From<&SigningKey<E>> for PublicKey<E> {
     fn from(signing_key: &SigningKey<E>) -> PublicKey<E> {
         let signature_capacity = signing_key.signature_capacity;
 
-        let mut public_keys =
-            vec![E::G2Projective::prime_subgroup_generator(); signature_capacity];
+        let mut public_keys = vec![E::G2Projective::prime_subgroup_generator(); signature_capacity];
         for (pkey, skey) in public_keys.iter_mut().zip(signing_key) {
             *pkey *= skey;
         }
