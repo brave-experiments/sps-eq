@@ -149,7 +149,7 @@ impl<E: PairingEngine> SigningKey<E> {
         let mut messages = messages.clone();
         for (value, key) in messages.iter_mut().zip(self.secret_keys.iter()) {
             *value *= *key;
-            Z += value;
+            Z += *value;
         }
 
         Z *= randomness;
