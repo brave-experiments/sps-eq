@@ -5,6 +5,7 @@ use std::fmt::Display;
 pub enum SpsEqSignatureError {
     UnmatchedCapacity,
     InvalidSignature,
+    InvalidSecretKeyVector,
 }
 
 impl Display for SpsEqSignatureError {
@@ -12,6 +13,9 @@ impl Display for SpsEqSignatureError {
         match *self {
             SpsEqSignatureError::UnmatchedCapacity => write!(f, "The capacities do not match"),
             SpsEqSignatureError::InvalidSignature => write!(f, "Invalid signature"),
+            SpsEqSignatureError::InvalidSecretKeyVector => {
+                write!(f, "Failed to generate a secret key from the given array")
+            }
         }
     }
 }

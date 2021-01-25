@@ -5,6 +5,7 @@ use ark_ec::{PairingEngine, ProjectiveCurve};
 use ark_ff::{Field, UniformRand, Zero};
 use zeroize::Zeroize;
 
+use crate::errors::*;
 use rand::{CryptoRng, Rng};
 
 /// SPS-EQ signature
@@ -119,7 +120,9 @@ impl<E: PairingEngine> SigningKey<E> {
     }
 
     /// Generate a [`SigningKey`] from a given input.
-    pub fn from(sks: Vec<E::Fr>) -> Result<SigningKey<E>, ()> {
+    pub fn from(
+        sks: Vec<E::Fr>,
+    ) -> Result<SigningKey<E>, SpsEqSignatureError> {
         let signature_capacity = sks.len();
 
         Ok(SigningKey {
