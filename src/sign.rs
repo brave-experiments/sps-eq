@@ -147,7 +147,7 @@ impl<E: PairingEngine> SigningKey<E> {
         let mut messages = messages.to_owned();
         for (value, key) in messages.iter_mut().zip(self) {
             *value *= key;
-            Z += value;
+            Z += *value;
         }
 
         Z *= randomness;
