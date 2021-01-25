@@ -1,10 +1,11 @@
 //! Module describing the signing procedures and structs
 
 use ark_ec::{PairingEngine, ProjectiveCurve};
+
 use ark_ff::{Field, UniformRand, Zero};
+use zeroize::Zeroize;
 
 use rand::{CryptoRng, Rng};
-use zeroize::Zeroize;
 
 /// SPS-EQ signature
 pub struct SpsEqSignature<E: PairingEngine> {
