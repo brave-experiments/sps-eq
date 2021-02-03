@@ -120,9 +120,7 @@ impl<E: PairingEngine> SigningKey<E> {
     }
 
     /// Generate a [`SigningKey`] from a given input.
-    pub fn from(
-        sks: Vec<E::Fr>,
-    ) -> Result<SigningKey<E>, SpsEqSignatureError> {
+    pub fn from(sks: Vec<E::Fr>) -> Result<SigningKey<E>, SpsEqSignatureError> {
         let signature_capacity = sks.len();
 
         Ok(SigningKey {

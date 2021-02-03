@@ -6,6 +6,7 @@ pub enum SpsEqSignatureError {
     UnmatchedCapacity,
     InvalidSignature,
     InvalidSecretKeyVector,
+    IoErrorWrite,
 }
 
 impl Display for SpsEqSignatureError {
@@ -16,6 +17,7 @@ impl Display for SpsEqSignatureError {
             SpsEqSignatureError::InvalidSecretKeyVector => {
                 write!(f, "Failed to generate a secret key from the given array")
             }
+            SpsEqSignatureError::IoErrorWrite => write!(f, "Error writing in the IO stream"),
         }
     }
 }

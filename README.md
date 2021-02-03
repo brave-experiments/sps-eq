@@ -7,31 +7,28 @@ This library is work in progress.
 
 ## Usage
 ```rust
-use sps_eq::parameters::{SystemParameters, IssuerParameters};
-use sps_eq::issuer::{Issuer};
-use sps_eq::tools::{EquivalenceClass};
+use sps_eq::sign::*;
+use sps_eq::verify::*;
 
-let equivalence_class_length = 2;
-let system_parameters: SystemParameters = SystemParameters::gen(equivalence_class_length);
+use ark_bls12_381::{Bls12_381, G1Projective as G1};
+use ark_ff::UniformRand;
+use rand::thread_rng;
 
-// Maybe we want to allow the caller of the lib to include their rng of preference.
-let issuer: Issuer = Issuer::new(&system_parameters);
-let issuer_parameters: IssuerParameters = issuer.parameters; 
+// Issuer generates key pair, by selecting the number of elements within an equivalence class.
+let sk = SigningKey::<Bls12_381>::new(2, &mut thread_rng());
+let pk = PublicKey::from(&sk);
 
-// Now the user selects the equivalence class over which it requests the 
-// signature. This step may be done by the issuer directly, of course. 
-let equivalence_class: EquivalenceClass = EquivalenceClass::random();
+// Representation of the equivalence class over which to generate the signature is selected
+let message = vec![G1::rand(&mut thread_rng()); 2];
+let signature = sk.sign(&message, &mut thread_rng());
 
-// Issuer signs the equivalence class
-let issuance = issuer.sign(&equivalence_class);
+assert!(pk.verify(&message, &signature).is_ok());
 
-// The user now verifies that the signature is valid
-let signature_eq: SpsEqSiganture = issuance.verify(&equivalence_class);
+// Representation of the equivalence class and its signature are randomised
+let new_repr = signature.generate_new_repr(&message, &mut thread_rng());
+let new_repr_message = new_repr.1;
+let new_repr_signature = new_repr.0;
 
-// The user can now change the representation of the signature
-let changed_representation: SpsEqSignature = signature_eq.chg_rep();
-
-// Or it can change it by providing randomness
-let changed_representation: SpsEqSignature = signature_eq.chg_rep_with_rng(&mut rng_of_choice);
+assert!(pk.verify(&new_repr_message, &new_repr_signature).is_ok());
 ```
 
