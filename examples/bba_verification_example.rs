@@ -1,5 +1,5 @@
 // This example contains the verification procedure of a BBA token as described
-// technical spec of the RFC&C organised by Brave. The part of issuing, or
+// technical spec of the RFC&C organised by Brave. The part of issuing or
 // updating the token falls out of the scope of this example. For more code on
 // BBAs, please refer to https://github.com/brave-experiments/bb-accumulators.
 // Still work in progress
@@ -81,6 +81,4 @@ fn main() {
     assert_eq!(verif_reward, proof.3);
     assert_eq!(verif_token, proof.1[0]);
     assert!(pk_sps.verify(&proof.1, &proof.2).is_ok());
-
-    println!("Checks passed");
 }
