@@ -3,7 +3,9 @@
 use ark_ec::{PairingEngine, ProjectiveCurve};
 
 use ark_ff::{Field, UniformRand, Zero};
+use zeroize::Zeroize;
 
+use crate::errors::*;
 use rand::{CryptoRng, Rng};
 
 /// SPS-EQ signature
@@ -23,7 +25,7 @@ impl<E: PairingEngine> SpsEqSignature<E> {
     /// message)
     pub fn change_repr<R>(
         &mut self,
-        message: &Vec<E::G1Projective>,
+        message: &[E::G1Projective],
         rng: &mut R,
     ) -> Vec<E::G1Projective>
     where
@@ -46,7 +48,7 @@ impl<E: PairingEngine> SpsEqSignature<E> {
     /// and the signature (ie. signature may not correspond to the message)
     pub fn generate_new_repr<R>(
         self,
-        message: &Vec<E::G1Projective>,
+        message: &[E::G1Projective],
         rng: &mut R,
     ) -> (SpsEqSignature<E>, Vec<E::G1Projective>)
     where
@@ -61,17 +63,15 @@ impl<E: PairingEngine> SpsEqSignature<E> {
         (rnd_signature, rnd_message)
     }
 
-    fn rnd_message(message: &Vec<E::G1Projective>, rnd_f: E::Fr) -> Vec<E::G1Projective> {
-        let rnd_msg = message
-            .clone()
+    fn rnd_message(message: &[E::G1Projective], rnd_f: E::Fr) -> Vec<E::G1Projective> {
+        message
+            .to_owned()
             .into_iter()
             .map(|mut g| {
                 g *= rnd_f;
                 g
             })
-            .collect();
-
-        rnd_msg
+            .collect()
     }
 
     fn rnd_signature(
@@ -98,12 +98,12 @@ impl<E: PairingEngine> SpsEqSignature<E> {
 }
 
 /// SPS-EQ signing key
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct SigningKey<E: PairingEngine> {
     /// Capacity supported by the signing key
     pub signature_capacity: usize,
     /// Secret keys
-    pub(crate) secret_keys: Vec<E::Fr>,
+    secret_keys: Vec<E::Fr>,
 }
 
 impl<E: PairingEngine> SigningKey<E> {
@@ -120,7 +120,7 @@ impl<E: PairingEngine> SigningKey<E> {
     }
 
     /// Generate a [`SigningKey`] from a given input.
-    pub fn from(sks: Vec<E::Fr>) -> Result<SigningKey<E>, ()> {
+    pub fn from(sks: Vec<E::Fr>) -> Result<SigningKey<E>, SpsEqSignatureError> {
         let signature_capacity = sks.len();
 
         Ok(SigningKey {
@@ -130,7 +130,7 @@ impl<E: PairingEngine> SigningKey<E> {
     }
 
     /// Sign a message, represented by a tuple of elements of G1Projective
-    pub fn sign<R>(&self, messages: &Vec<E::G1Projective>, rng: &mut R) -> SpsEqSignature<E>
+    pub fn sign<R>(&self, messages: &[E::G1Projective], rng: &mut R) -> SpsEqSignature<E>
     where
         R: Rng + CryptoRng,
     {
@@ -146,9 +146,9 @@ impl<E: PairingEngine> SigningKey<E> {
 
         // todo: in here we'll eventually use `VariableBaseMSM::multi_scalar_mul`. Not necessary
         // yet, as we expect to have only two commitments.
-        let mut messages = messages.clone();
-        for (value, key) in messages.iter_mut().zip(self.secret_keys.iter()) {
-            *value *= *key;
+        let mut messages = messages.to_owned();
+        for (value, key) in messages.iter_mut().zip(self) {
+            *value *= key;
             Z += *value;
         }
 
@@ -160,11 +160,51 @@ impl<E: PairingEngine> SigningKey<E> {
     }
 }
 
-impl<E: PairingEngine> IntoIterator for SigningKey<E> {
+/// Implements `Zeroize` for SigningKeys.
+/// todo: probably not required, as E::FR already implements zeroize
+impl<E: PairingEngine> Zeroize for SigningKey<E> {
+    fn zeroize(&mut self) {
+        for key in self.secret_keys.iter_mut() {
+            key.zeroize();
+        }
+    }
+}
+
+impl<E: PairingEngine> PartialEq for SigningKey<E> {
+    fn eq(&self, other: &Self) -> bool {
+        self.secret_keys == other.secret_keys
+    }
+}
+
+impl<'a, E: PairingEngine> IntoIterator for &'a SigningKey<E> {
     type Item = E::Fr;
-    type IntoIter = std::vec::IntoIter<Self::Item>;
+    type IntoIter = KeyIntoIterator<'a, E>;
+
     fn into_iter(self) -> Self::IntoIter {
-        self.secret_keys.into_iter()
+        KeyIntoIterator {
+            signing_key: self,
+            index: 0,
+        }
+    }
+}
+
+/// Iterator for `SigningKey`, which implements `Iterator` itself
+pub struct KeyIntoIterator<'a, E: PairingEngine> {
+    signing_key: &'a SigningKey<E>,
+    index: usize,
+}
+
+impl<'a, E: PairingEngine> Iterator for KeyIntoIterator<'a, E> {
+    type Item = E::Fr;
+
+    fn next(&mut self) -> Option<E::Fr> {
+        match self.signing_key.secret_keys.get(self.index) {
+            Some(x) => {
+                self.index += 1;
+                Some(*x)
+            }
+            None => None,
+        }
     }
 }
 
@@ -201,9 +241,18 @@ mod tests {
     #[test]
     fn test_iterator() {
         let sk = SigningKey::<Bls12_381>::from(vec![Fr::one(); 3]).unwrap();
-        for item in sk.into_iter() {
+        for item in &sk {
             assert_eq!(item, Fr::one())
         }
+    }
+
+    #[test]
+    fn given_sk() {
+        let sk = SigningKey::<Bls12_381>::new(3, &mut thread_rng());
+        let values = sk.secret_keys.clone();
+
+        let sk_from_value = SigningKey::<Bls12_381>::from(values).unwrap();
+        assert_eq!(sk, sk_from_value)
     }
 
     #[test]
